@@ -9,10 +9,23 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class QNetwork(torch.nn.Module):
+    """
+    Neural Network Model to approximate action value function Q
+    """
     def __init__(self, input_size: int = 37, output_size: int = 4,
                  hidden_layer_sizes: list = [64],
                  hidden_layer_activation_fn=torch.relu,
                  seed=42):
+        """
+        Initializes model parameters
+
+        Args:
+            input_size: state space size of the environment
+            output_size:  action space size of the agent
+            hidden_layer_sizes: units per hidden layer
+            hidden_layer_activation_fn: activation function for hidden layer logits
+            seed: random seed
+        """
         super(QNetwork, self).__init__()
 
         self.seed = torch.manual_seed(seed)
@@ -26,15 +39,34 @@ class QNetwork(torch.nn.Module):
         self.fc_output = torch.nn.Linear(hidden_layer_sizes[0], output_size)
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
+        """
+        Performs a forward pass trough the model
+
+        Args:
+            state: instance(s) representing state to pass through the network
+
+        Returns:
+            output_logit: action values
+        """
         input_logit = self.fc_input(state.float())
         input_activ = self.hidden_layer_activation_fn(input_logit)
-        output_logit = self.fc_output(input_activ)
+        output_logits = self.fc_output(input_activ)
 
-        return output_logit
+        return output_logits
 
 
 class Agent:
+    """Interacts with and learns from the environment"""
     def __init__(self, state_size: int, action_size: int, seed: int, hyperparams: dict):
+        """
+        Initializes agent instance
+
+        Args:
+            state_size: number of values to express a state observation
+            action_size: number of unique actions the agent can perform
+            seed: random seed
+            hyperparams: instantiation and training hyperparameters
+        """
         self.epsilon = hyperparams['eps_start']
         self.min_epsilon = hyperparams['eps_min']
         self.action_space = np.arange(action_size)
@@ -81,7 +113,13 @@ class Agent:
     def update_epsilon(self, eps_decay: float):
         self.epsilon = max(self.epsilon*eps_decay, self.min_epsilon)
 
-    def learn(self, experiences):
+    def learn(self, experiences: tuple):
+        """
+        Update value parameters using given batch of experience tuples.
+
+        Args:
+            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) Tensors
+        """
         states, actions, rewards, next_states, dones = experiences
 
         q_targets_next = self.target_q_network(next_states).detach().max(1)[0].unsqueeze(1)

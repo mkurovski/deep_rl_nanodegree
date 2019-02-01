@@ -50,15 +50,13 @@ You may change the following hyperparameters in the dictionary `hyperparams` tha
 * `eps_start`: Start probability to choose a random action when following an epsilon-greedy strategy
 * `eps_min`: Minimum probability for epsilon-greedy strategy
 * `eps_decay`: Decay Factor for `epsilon` applied every episode
-* `learn_rate`: portion of the gradient to use for updating the parameters of the neural network that is used to approximate the action values during
+* `learn_rate`: portion of the gradient to use for updating the parameters of the neural network that is used to approximate the action values during training
 * `batch_size`: Number of single step experiences (state, action, reward, next state) to constitute a minibatch that is used for the gradient descent update
 * `gamma`: discount factor used within the TD-target as part of the parameter update within (Deep) Q-Learning
 * `update_interval`: number of steps to perform before updating the target network
 * `tau`: interpolation parameter for target network update
 
 Besides these hyperparameters you may also change the number of episodes `n_episodes` and the maximum number of steps `max_steps` before we force an otherwise unfinished episode to end. Both parameters are used for the `perform_dqn_training` method that trains our agent.
-
-**TODO** Add `train_mode = False` environment to show trained agent in test mode and potentially before (before training, training, after training)
 
 ## Project 2: Continuous Control - train a double-joined arm to reach bananas
 

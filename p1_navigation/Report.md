@@ -1,16 +1,26 @@
 # Project 1: Navigation - Report
 
-* Best agent storage
+This report describes the solution for the navigation evironment along with the algorithm, chosen network architecture and hyperparameters. I evaluate the performance across training in each episode and illustrate it along with target and average performance in the figure below. In addition, I conclude with a few ideas on further improvements.
 
-
-The model parameters for the agent's `q_network` are stored to `best_banana_picker_agent.pth`. The parameters are kept for the agent that solved the environment (reach at least a score of `+13`) and achieved the highest score among all episodes.
-
+The model parameters for the best performing agent, i.e. the Q-network parameters can be found in `best_banana_picker_agent.pth`. Please notice that they will be overwritten once you trigger training using the provided JuPyter notebook.
 
 ## Learning Algorithm
 
 * learning algorithm: Q-Learning with a neural network for q-value function approximation (see and reference Mnih paper)
 * hyperparameters (see README.md, choice of SGD flavor is also a hyperparameter, here it is Adaptive momentum, but it could also be vanilla SGD)
-* neural network model architecture (input, hidden, output, no further regularization like dropout, using relu activations, only fully-connected), standard deep feed-forward neural network
+
+To train the agent maximizing its cumulated discounted reward per episode, I used deep Q-learning with experience replay presented in the [DeepMind paper from 2015 by Mnih et al.](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf) with the following hyperparameter choice:
+
+* `eps_start`: 1.0
+* `eps_min`: 0.01
+* `eps_decay`: 0.995
+* `learn_rate`: 0.0005
+* `batch_size`: 64
+* `gamma`: 0.99
+* `update_interval`: 4
+* `tau`: 0.001
+
+The deep Q-network serves to approximate the best action-values (Q) and is a standard deep feedforward neural network. It consists of three layers (input, hidden, output) with 37 input units (37 continues values that represent a state), 64 hidden units that are activated using the rectified linear unit (ReLU) function, and 4 output units that represented the action values. All layers are fully connected without employing dropout regularization or batch normalization. Adaptive Momentum (Adam) is the stochatic gradient descent flavor I use for gradient computation and parameter updates.
 
 ## Performance Curve
 
