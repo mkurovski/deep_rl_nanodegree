@@ -2,7 +2,6 @@ name: drl
 channels:
   - defaults
 dependencies:
-  - appnope=0.1.0
   - backcall=0.1.0
   - blas=1.0
   - ca-certificates=2018.03.07
@@ -15,11 +14,8 @@ dependencies:
   - ipython_genutils=0.2.0
   - jedi=0.13.1
   - kiwisolver=1.0.1
-  - libcxx=4.0.1
-  - libcxxabi=4.0.1
   - libedit=3.1.20170329
   - libffi=3.2.1
-  - libgfortran=3.0.1
   - libpng=1.6.35
   - matplotlib=3.0.2
   - mkl=2019.1
@@ -58,6 +54,7 @@ dependencies:
   - zlib=1.2.11
   - pip:
     - absl-py==0.6.1
+    - appnope==0.1.0
     - astor==0.7.1
     - atomicwrites==1.2.1
     - attrs==18.2.0
