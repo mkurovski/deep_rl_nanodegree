@@ -17,7 +17,7 @@ class Agent(torch.nn.Module):
 
     def _forward(self, state: np.ndarray):
         x = torch.from_numpy(state).float()
-        x = self.linear_1(x)
+        x = torch.relu(self.linear_1(x))
         x = self.linear_2(x)
 
         return self.softmax(x)
