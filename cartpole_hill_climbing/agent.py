@@ -11,8 +11,8 @@ class Agent(torch.nn.Module):
     def __init__(self, state_size: int, action_size: int, hidden_size_1):
         super(Agent, self).__init__()
         self.actions = list(range(action_size))
-        self.linear_1 = torch.nn.Linear(state_size, hidden_size_1)
-        self.linear_2 = torch.nn.Linear(hidden_size_1, action_size)
+        self.linear_1 = torch.nn.Linear(state_size, hidden_size_1, bias=False)
+        self.linear_2 = torch.nn.Linear(hidden_size_1, action_size, bias=False)
         self.softmax = torch.nn.Softmax(dim=0)
 
     def _forward(self, state: np.ndarray):
@@ -30,20 +30,15 @@ class Agent(torch.nn.Module):
         return action
 
     def get_params(self):
-        params = dict.fromkeys(['weights_1', 'biases_1',
-                                'weights_2', 'biases_2'])
+        params = dict.fromkeys(['weights_1', 'weights_2'])
         params['weights_1'] = self.linear_1.weight.detach()
-        params['biases_1'] = self.linear_1.bias.detach()
         params['weights_2'] = self.linear_2.weight.detach()
-        params['biases_2'] = self.linear_2.bias.detach()
 
         return params
 
     def set_params(self, new_params: dict):
         self.linear_1.weight = torch.nn.Parameter(new_params['weights_1'])
-        self.linear_1.bias = torch.nn.Parameter(new_params['biases_1'])
         self.linear_2.weight = torch.nn.Parameter(new_params['weights_2'])
-        self.linear_2.bias = torch.nn.Parameter(new_params['biases_2'])
 
     def watch_me(self, env, steps: int=500):
         """Shows the agent acting in the environment"""
@@ -62,7 +57,8 @@ def add_noise(params: dict, noise_std: float = 0.1, noise_mean: float = 0.):
     """Adds Gaussian noise to Agent parameters"""
     params_cand = deepcopy(params)
     for key, val in params_cand.items():
-        shape = val.shape
-        params_cand[key] = val + (torch.randn(shape) * noise_std + noise_mean)
+        if val is not None:
+            shape = val.shape
+            params_cand[key] = val + (torch.randn(shape) * noise_std + noise_mean)
 
     return params_cand

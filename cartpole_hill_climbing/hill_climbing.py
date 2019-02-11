@@ -91,7 +91,7 @@ def perform_hill_climbing(agent, env, n_episodes: int = 500,
         params_cand_list = []
         G_list = []
         for _ in range(population_size):
-            cand_params = add_noise(best_params)
+            cand_params = add_noise(best_params, noise_std=noise_std)
             agent.set_params(cand_params)
             G = run_single_episode(agent, env)
             params_cand_list.append(cand_params)
