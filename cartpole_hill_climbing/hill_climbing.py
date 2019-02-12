@@ -2,6 +2,7 @@
 Module that implements different flavors and helpers of Hill Climbing Algorithms
 for Policy-based strategies towards Reinforcement Learning
 """
+from collections import deque
 from typing import Dict, List
 
 import numpy as np
@@ -83,7 +84,9 @@ def perform_hill_climbing(agent, env, n_episodes: int = 500,
     best_params = agent.get_params()
     # estimated return of current policy
     G_best = run_single_episode(agent, env)
+    return_deque = deque(maxlen=100)
     return_history = [G_best]
+    return_deque.append(G_best)
 
     print("Start with Return Estimate G = %s" % G_best)
 
@@ -118,7 +121,17 @@ def perform_hill_climbing(agent, env, n_episodes: int = 500,
                 noise_std = min(max_noise_std, noise_std * noise_scaling_factor)
 
         agent.set_params(best_params)
-        return_history.append(G)
+        return_history.append(G_cand)
+        return_deque.append(G_cand)
+
+        if episode % 100 == 0:
+            print('Episode {}\tAverage Score: {:.2f}'.format(episode,
+                                                             np.mean(return_deque)))
+
+        if np.mean(return_deque) >= 195.0:
+            print('Environment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(
+                    episode-100, np.mean(return_deque)))
+            break
 
     return agent, return_history
 
