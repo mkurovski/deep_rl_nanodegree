@@ -1,29 +1,27 @@
-import numpy as np
-import random
+"""
+Module adapted from
+https://github.com/udacity/deep-reinforcement-learning/tree/master/ddpg-pendulum/ddpg_agent.py
+for training the OpenAI Gym's Pendulum environment
+"""
 import copy
 from collections import namedtuple, deque
 
-from model import Actor, Critic
-
+import numpy as np
+import random
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 128  # minibatch size
-GAMMA = 0.99  # discount factor
-TAU = 1e-3  # for soft update of target parameters
-LR_ACTOR = 1e-4  # learning rate of the actor
-LR_CRITIC = 1e-3  # learning rate of the critic
-WEIGHT_DECAY = 0  # L2 weight decay
+from model import Actor, Critic
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class Agent():
+class Agent:
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size, random_seed):
+    def __init__(self, state_size, action_size, params):
         """Initialize an Agent object.
 
         Params
@@ -34,34 +32,42 @@ class Agent():
         """
         self.state_size = state_size
         self.action_size = action_size
-        self.seed = random.seed(random_seed)
+        self.seed = params['agent_seed']
+        self.buffer_size = int(params['buffer_size'])
+        self.batch_size = params['batch_size']
+        self.lr_actor = params['lr_actor']
+        self.lr_critic = params['lr_critic']
+        self.critic_weight_decay = params['critic_weight_decay']
+        self.gamma = params['gamma']
+        self.tau = params['tau']
+
+        random.seed(self.seed)
 
         # Actor Network (w/ Target Network)
-        self.actor_local = Actor(state_size, action_size, random_seed).to(device)
-        self.actor_target = Actor(state_size, action_size, random_seed).to(device)
-        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR)
+        self.actor_local = Actor(state_size, action_size, self.seed).to(device)
+        self.actor_target = Actor(state_size, action_size, self.seed).to(device)
+        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=self.lr_actor)
 
         # Critic Network (w/ Target Network)
-        self.critic_local = Critic(state_size, action_size, random_seed).to(device)
-        self.critic_target = Critic(state_size, action_size, random_seed).to(device)
-        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC,
-                                           weight_decay=WEIGHT_DECAY)
+        self.critic_local = Critic(state_size, action_size, self.seed).to(device)
+        self.critic_target = Critic(state_size, action_size, self.seed).to(device)
+        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=self.lr_critic,
+                                           weight_decay=self.critic_weight_decay)
 
         # Noise process
-        self.noise = OUNoise(action_size, random_seed)
+        self.noise = OUNoise(action_size, self.seed)
 
         # Replay memory
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
+        self.memory = ReplayBuffer(action_size, self.buffer_size, self.batch_size, self.seed)
 
     def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # Save experience / reward
         self.memory.add(state, action, reward, next_state, done)
 
-        # Learn, if enough samples are available in memory
-        if len(self.memory) > BATCH_SIZE:
+        if len(self.memory) > self.batch_size:
             experiences = self.memory.sample()
-            self.learn(experiences, GAMMA)
+            self.learn(experiences)
 
     def act(self, state, add_noise=True):
         """Returns actions for given state as per current policy."""
@@ -77,7 +83,7 @@ class Agent():
     def reset(self):
         self.noise.reset()
 
-    def learn(self, experiences, gamma):
+    def learn(self, experiences):
         """Update policy and value parameters using given batch of experience tuples.
         Q_targets = r + γ * critic_target(next_state, actor_target(next_state))
         where:
@@ -96,7 +102,7 @@ class Agent():
         actions_next = self.actor_target(next_states)
         Q_targets_next = self.critic_target(next_states, actions_next)
         # Compute Q targets for current states (y_i)
-        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
+        Q_targets = rewards + (self.gamma * Q_targets_next * (1 - dones))
         # Compute critic loss
         Q_expected = self.critic_local(states, actions)
         critic_loss = F.mse_loss(Q_expected, Q_targets)
@@ -104,7 +110,6 @@ class Agent():
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
-
         # ---------------------------- update actor ---------------------------- #
         # Compute actor loss
         actions_pred = self.actor_local(states)
@@ -115,10 +120,10 @@ class Agent():
         self.actor_optimizer.step()
 
         # ----------------------- update target networks ----------------------- #
-        self.soft_update(self.critic_local, self.critic_target, TAU)
-        self.soft_update(self.actor_local, self.actor_target, TAU)
+        self.soft_update(self.critic_local, self.critic_target)
+        self.soft_update(self.actor_local, self.actor_target)
 
-    def soft_update(self, local_model, target_model, tau):
+    def soft_update(self, local_model, target_model):
         """Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target
 
@@ -131,7 +136,7 @@ class Agent():
         for target_param, local_param in zip(target_model.parameters(),
                                              local_model.parameters()):
             target_param.data.copy_(
-                tau * local_param.data + (1.0 - tau) * target_param.data)
+                self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
 
 
 class OUNoise:
