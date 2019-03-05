@@ -12,8 +12,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from model import Actor, Critic
 
+from model import Actor, Critic
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -40,8 +40,10 @@ class Agent:
         self.critic_weight_decay = params['critic_weight_decay']
         self.gamma = params['gamma']
         self.tau = params['tau']
+        self.update_step = params['update_step']
 
         random.seed(self.seed)
+        self.t_step = 0
 
         # Actor Network (w/ Target Network)
         self.actor_local = Actor(state_size, action_size, self.seed).to(device)
@@ -64,8 +66,9 @@ class Agent:
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # Save experience / reward
         self.memory.add(state, action, reward, next_state, done)
+        self.t_step += 1
 
-        if len(self.memory) > self.batch_size:
+        if (len(self.memory) > self.batch_size) & (self.t_step % self.update_step == 0):
             experiences = self.memory.sample()
             self.learn(experiences)
 
@@ -109,6 +112,7 @@ class Agent:
         # Minimize the loss
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
         self.critic_optimizer.step()
         # ---------------------------- update actor ---------------------------- #
         # Compute actor loss
@@ -147,7 +151,8 @@ class OUNoise:
         self.mu = mu * np.ones(size)
         self.theta = theta
         self.sigma = sigma
-        self.seed = random.seed(seed)
+        # self.seed = random.seed(seed)
+        np.random.seed(seed)
         self.reset()
 
     def reset(self):
@@ -157,8 +162,7 @@ class OUNoise:
     def sample(self):
         """Update internal state and return it as a noise sample."""
         x = self.state
-        dx = self.theta * (self.mu - x) + self.sigma * np.array(
-                [random.random() for i in range(len(x))])
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.normal(size=x.size)
         self.state = x + dx
         return self.state
 
