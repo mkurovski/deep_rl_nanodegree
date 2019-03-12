@@ -5,6 +5,8 @@ for training the OpenAI Gym's Pendulum environment
 """
 import copy
 from collections import namedtuple, deque
+from typing import Dict, Tuple
+import pdb
 
 import numpy as np
 import random
@@ -70,9 +72,9 @@ class Agent:
         self.t_step += 1
 
         # if we need to control the learning of both agents we can also set again a random seed here
-        if (len(memory) > self.batch_size) & (self.t_step % self.update_step == 0):
-            experiences = memory.sample()
-            self.learn(experiences, agents)
+        if (len(memory) >= self.batch_size) & (self.t_step % self.update_step == 0):
+            agents_experiences = memory.sample()
+            self.learn(agents_experiences, agents)
 
     def act(self, state, add_noise=True, scale=1.0):
         """Returns actions for given state as per current policy."""
@@ -83,39 +85,45 @@ class Agent:
         self.actor_local.train()
         if add_noise:
             action += self.noise.sample() * scale
+        np.clip(action, -1, 1)
         return action
 
     def reset(self):
         self.noise.reset()
 
-    def learn(self, experiences, agents):
+    def learn(self, experiences: Dict[int, Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor]],
+              agents: Dict[int, object]):
         """Update policy and value parameters using given batch of experience tuples.
         Q_targets = r + γ * critic_target(next_state, actor_target(next_state))
         where:
             actor_target(state) -> action
             critic_target(state, action) -> Q-value
 
-        Params
-        ======
-            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples
-            gamma (float): discount factor
-            states, actions, rewards, next states, dones
+        Args;
+            experiences: dictionary with agent-specific tuples
+                with five tensors each that comprise states, actions, rewards,
+                next_states, and dones batch_wise following exactly that order,
+                i.e. tensor objects of size
+                (`batch_size`, dim) where dim is `state_size` for states
+                and next_states, `action_size` for actions, and 1 for rewards and dones
+            agents:
         """
         # self_states = experiences[self.agent_no][0]
         # self_actions = experiences[self.agent_no][1]
-
         self_rewards = experiences[self.agent_no][2]
         self_dones = experiences[self.agent_no][4]
-
-        # compute actions_next based on states (0) or states_next (3)?
-        joint_actions_next = torch.cat([agents[no].actor_target(experiences[no][3])
-                                        for no in range(self.num_agents)], dim=1)
 
         joint_next_states = torch.cat([experiences[no][3]
                                        for no in range(self.num_agents)], dim=1)
 
-        Q_targets_next = self.critic_target(joint_next_states, joint_actions_next)
+        # compute actions_next applying ea. agents target policy
+        # on its next_states observations
+        joint_actions_next = torch.cat([agents[no].actor_target(experiences[no][3])
+                                        for no in range(self.num_agents)], dim=1)
 
+        # compute the Q_targets (y) using the agent's target critic network with
+        # on the next_states observations of all agents and joint_actions_next
+        Q_targets_next = self.critic_target(joint_next_states, joint_actions_next)
         Q_targets = self_rewards + (self.gamma * Q_targets_next * (1 - self_dones))
 
         joint_states = torch.cat([experiences[no][0]
@@ -123,11 +131,15 @@ class Agent:
         joint_actions = torch.cat([experiences[no][1]
                                    for no in range(self.num_agents)], dim=1)
 
+        # compute Q_expected applying the local critic to joint state observations
+        # and all agents' actions
         Q_expected = self.critic_local(joint_states, joint_actions)
 
         # Compute critic loss
         critic_loss = F.mse_loss(Q_expected, Q_targets)
+
         # Minimize the loss
+        # Hypothesis: Potentially gradients are erroneously computed for other agents besides self?
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
@@ -136,8 +148,10 @@ class Agent:
         # ---------------------------- update actor ---------------------------- #
         joint_actions_pred = torch.cat([agents[no].actor_local(experiences[no][0])
                                         for no in range(self.num_agents)], dim=1)
+
         # Compute actor loss
         actor_loss = -self.critic_local(joint_states, joint_actions_pred).mean()
+
         # Minimize the loss
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
@@ -200,22 +214,42 @@ class ReplayBuffer:
         self.memory = deque(maxlen=int(params['buffer_size']))  # internal memory (deque)
         self.batch_size = params['batch_size']
         self.experience = namedtuple("Experience",
-                                     field_names=["states", "actions", "rewards",
-                                                  "next_states", "dones"])
+                                     field_names=["states",
+                                                  "actions",
+                                                  "rewards",
+                                                  "next_states",
+                                                  "dones"])
         self.num_agents = params['num_agents']
         random.seed(params['buffer_seed'])
 
-    def add(self, states, actions, rewards, next_states, dones):
-        """Add a new experience to memory."""
+    def add(self, states: torch.tensor, actions: torch.tensor, rewards: torch.tensor,
+            next_states: torch.tensor, dones: torch.tensor):
+        """Add a new experience to memory.
+
+        Args:
+            states:
+            actions:
+            rewards:
+            next_states:
+            dones:
+        """
         e = self.experience(states, actions, rewards, next_states, dones)
         self.memory.append(e)
 
-    def sample(self):
-        """Randomly sample a batch of experiences from memory for multiple agents"""
-        experiences = random.sample(self.memory, k=self.batch_size)
+    def sample(self) -> Dict[int, Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, torch.tensor]]:
+        """Randomly sample a batch of experiences from memory for multiple agents
 
-        # return a tuple with ea. element refering to an agent experience batch
-        agent_experiences = dict.fromkeys(range(self.num_agents))
+        Returns:
+            agents_experiences: dictionary with agent-specific tuples
+                with five tensors each that comprise states, actions, rewards,
+                next_states, and dones batch_wise following exactly that order,
+                i.e. tensor objects of size
+                (`batch_size`, dim) where dim is `state_size` for states
+                and next_states, `action_size` for actions, and 1 for rewards and dones
+        """
+        experiences = random.sample(self.memory, k=self.batch_size)
+        agents_experiences = dict.fromkeys(range(self.num_agents))
+
         for no_agent in range(self.num_agents):
             states_batch = np.vstack(
                     [experience.states[no_agent] for experience in experiences])
@@ -226,19 +260,18 @@ class ReplayBuffer:
             next_states_batch = np.vstack(
                     [experience.next_states[no_agent] for experience in experiences])
             dones_batch = np.vstack(
-                    [experience.dones[no_agent] for experience in experiences]).astype(
-                np.uint8)
+                    [experience.dones[no_agent] for experience in experiences]).astype(np.uint8)
 
-            agent_experiences[no_agent] = (states_batch,
-                                           actions_batch,
-                                           rewards_batch,
-                                           next_states_batch,
-                                           dones_batch)
+            agents_experiences[no_agent] = (states_batch,
+                                            actions_batch,
+                                            rewards_batch,
+                                            next_states_batch,
+                                            dones_batch)
 
-            agent_experiences[no_agent] = tuple(torch.from_numpy(batch).float().to(device)
-                                                for batch in agent_experiences[no_agent])
+            agents_experiences[no_agent] = tuple(torch.from_numpy(batch).float().to(device)
+                                                 for batch in agents_experiences[no_agent])
 
-        return agent_experiences
+        return agents_experiences
 
     def __len__(self):
         """Return the current size of internal memory."""
