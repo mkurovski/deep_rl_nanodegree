@@ -169,8 +169,8 @@ You may change the following hyperparameters in the code:
 * `max_steps`: Maximum number of Steps to perform before manually interrupting an episode
 * `update_step`: How many steps to sample before conducting an agent update
 * `solution_threshold`: Boundary for score average across `eval_window_length` episodes to cross to consider the environment solved
-* `eval_window_length`: 100,
-* `num_agents`: 2,
+* `eval_window_length`: Number of most recent episodes to consider for an aggregate metric, e.g. moving average of most recent 100 scores
+* `num_agents`: How many agents the multi-agent environment comprises
 * `agent_seed`: Random seed used to initialize the neural network parameters and sampling generators
 * `env_seed`: Random seed to initialize the environment
 * `buffer_seed`: Random seed to initialize the Replay Buffer Sampling
