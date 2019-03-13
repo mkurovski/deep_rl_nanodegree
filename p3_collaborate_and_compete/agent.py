@@ -17,10 +17,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Agent:
     """Interacts with and learns from the environment.
-
-    Args:
-        tau (float): interpolation parameter for soft model update
-
+    (see the README for an explanation of the various hyperparameters)
     """
     def __init__(self, state_size: int, action_size: int, agent_no: int, params: dict):
         """Initialize an Agent object.
@@ -98,7 +95,7 @@ class Agent:
             scale: noise scaling parameter
 
         Returrns:
-            action:
+            action: clipped action of the agent
         """
         state = torch.from_numpy(state).float().to(device)
         self.actor_local.eval()
