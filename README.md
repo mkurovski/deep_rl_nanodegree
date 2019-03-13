@@ -85,6 +85,7 @@ The environment is considered solved when the average score of the episode-wise 
 [//]: # (Image References)
 
 [image1]: https://user-images.githubusercontent.com/10624937/43851024-320ba930-9aff-11e8-8493-ee547c6af349.gif "Trained Agent"
+[image2]: https://user-images.githubusercontent.com/10624937/42135623-e770e354-7d12-11e8-998d-29fc74429ca2.gif "Trained Agent"
 
 ![Trained Agent][image1]
 
@@ -110,4 +111,78 @@ Besides these hyperparameters you may also change the number of episodes `n_epis
 
 ## Project 3: Collaboration and Competition - train multiple agents to play tennis
 
-tbd
+1. Download the environment from one of the links below. You need only select the environment that matches your operating system:
+
+	* Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis_Linux.zip)
+	* Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis.app.zip)
+	* Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis_Windows_x86.zip)
+	* Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P3/Tennis/Tennis_Windows_x86_64.zip)
+
+2. Place the file in the `p3_collaborate_and_compete/` folder and unzip it.
+
+3. Choose between training or demonstrating the pretrained agent:
+
+	* **Training**:
+	
+		Open `collaborate_and_compete_solution.ipynb` with JuPyter Notebook to guides you through the steps involved to
+		* set everything up,
+		* train the agent
+		* and evaluate its performance.
+	
+	* **Demonstrating**
+
+		Open `watch_trained_agent.ipynb` with JuPyter Notebook and execute the cells to see the trained agents successfully playing tennis.
+
+The environment is considered solved when the average score surpasses `+0.5` for the most recent 100 episodes.
+
+![Trained Agent][image2]
+
+### Project Details
+
+In this environment, two agents control rackets to bounce a ball over a net. If an agent hits the ball over the net, it receives a reward of `+0.1`. If an agent lets a ball hit the ground or hits the ball out of bounds, it receives a reward of `-0.01`. Thus, the goal of each agent is to keep the ball in play.
+
+The observation space consists of 8 variables corresponding to the position and velocity of the ball and racket in the following order:
+
+* `racket position x` 
+* `racket position y`
+* `racket velocity x`
+* `racket velocity y`
+* `ball position x` 
+* `ball position y`
+* `ball velocity x`
+* `ball velocity y`
+
+For the adapted environment here, for each time step and agent its observation contains three stacked states, the current and the two most recent ones. Thus, stacking three observations of 8 variables results in an agent-specific observation with 3*8 = 24 values for a time step.
+Each agent receives its own, local observation. Two continuous actions are available, corresponding to movement toward (or away from) the net, and jumping. They are set to the interval `[-1, 1]`.
+
+The task is episodic, and in order to solve the environment, your agents must get an average score of +0.5 (over 100 consecutive episodes, after taking the maximum over both agents). Specifically,
+
+* After each episode, we add up the rewards that each agent received (without discounting), to get a score for each agent. This yields 2 (potentially different) scores. We then take the maximum of these 2 scores.
+* This yields a single score for each episode.
+
+You may change the following hyperparameters in the code:
+
+* `buffer_size`: Maximum number of samples that can be stored in the replay buffer queue
+* `batch_size`: Number of single step experiences (state, action, reward, next state) to constitute a minibatch that is used for an agent update
+* `n_random_episodes`: Number of episodes of random play to prefill thre Replay Buffer
+* `n_episodes`: Number of episodes to train
+* `max_steps`: Maximum number of Steps to perform before manually interrupting an episode
+* `update_step`: How many steps to sample before conducting an agent update
+* `solution_threshold`: Boundary for score average across `eval_window_length` episodes to cross to consider the environment solved
+* `eval_window_length`: 100,
+* `num_agents`: 2,
+* `agent_seed`: Random seed used to initialize the neural network parameters and sampling generators
+* `env_seed`: Random seed to initialize the environment
+* `buffer_seed`: Random seed to initialize the Replay Buffer Sampling
+* `gamma`: discount factor used within the TD-target as part of the parameter update within (Deep) Q-Learning
+* `tau`: interpolation parameter for soft target network update
+* `first_hidden_units`: Number of hidden units for the first hidden layer of the actor/critic deep neural networks
+* `second_hidden_units`: Number of hidden units for the second hidden layer of the actor/critic deep neural networks
+* `lr_actor`: Learning rate for the Adam Optimizer used for updating the network parameters of the actor
+* `lr_critic`: Learning rate for the Adam Optimizer used for updating the network parameters of the critic
+* `critic_weight_decay`: Weight decay to use for critic network weights
+* `add_noise`: whether to add or refrain from using noise
+* `noise_sigma`: Sigma to use for Ornstein-Uhlenbeck process
+* `noise_scale_start`: Initial scale for noise
+* `noise_scale_min`: Minimum noise scale
+* `noise_scale_decay`: Decay factor for noise scale in each episode
