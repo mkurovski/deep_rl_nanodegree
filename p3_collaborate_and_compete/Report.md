@@ -1,6 +1,6 @@
 
 
-# Projext 3: Collaboration and Competition
+# Project 3: Collaboration and Competition
 
 This final report concludes the Udacity Deep Reinforcement Learning Nanodegree with Multi-Agent Deep Deterministic Policy Gradients (MADDPG) used for training two tennis agents in a collaborative fashion. I will provide algorithmic remarks, the chosen network architecture and hyperparameter settings that led to my solution. Finally, I will outline a few ideas for further improvement of code, efficiency and accuracy.
 
